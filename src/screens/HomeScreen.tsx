@@ -85,41 +85,43 @@ export default function HomeScreen({ navigation }: any) {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
-      <View style={styles.header}>
-        <Text style={styles.title}>Flaurel</Text>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => navigation.navigate('AddPlant')}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.addButtonText}>+</Text>
-        </TouchableOpacity>
-      </View>
+      <View style={styles.container}>
+          <StatusBar barStyle="light-content" />
+          <View style={styles.header}>
+              <Text style={styles.title}>🪴</Text>
+              <TouchableOpacity
+                  style={styles.addButton}
+                  onPress={() => navigation.navigate("AddPlant")}
+                  activeOpacity={0.7}
+              >
+                  <Text style={styles.addButtonText}>+</Text>
+              </TouchableOpacity>
+          </View>
 
-      {plants.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyIcon}>🌿</Text>
-          <Text style={styles.emptyText}>No plants yet</Text>
-          <Text style={styles.emptySubtext}>Tap + to add your first plant</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={plants}
-          renderItem={renderPlant}
-          keyExtractor={item => item.id}
-          contentContainerStyle={styles.list}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={colors.primary}
-            />
-          }
-        />
-      )}
-    </View>
+          {plants.length === 0 ? (
+              <View style={styles.emptyState}>
+                  <Text style={styles.emptyIcon}>🪴</Text>
+                  <Text style={styles.emptyText}>No plants yet</Text>
+                  <Text style={styles.emptySubtext}>
+                      Tap + to add your first plant
+                  </Text>
+              </View>
+          ) : (
+              <FlatList
+                  data={plants}
+                  renderItem={renderPlant}
+                  keyExtractor={(item) => item.id}
+                  contentContainerStyle={styles.list}
+                  refreshControl={
+                      <RefreshControl
+                          refreshing={refreshing}
+                          onRefresh={onRefresh}
+                          tintColor={colors.primary}
+                      />
+                  }
+              />
+          )}
+      </View>
   );
 }
 

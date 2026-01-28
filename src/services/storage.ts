@@ -3,8 +3,8 @@ import { Platform } from 'react-native';
 import { Plant, WateringEvent } from '../types/plant';
 import { notificationService } from './notifications';
 
-const PLANTS_KEY = '@flaurel:plants';
-const WATERING_HISTORY_KEY = '@flaurel:watering_history';
+const PLANTS_KEY = '@🪴:plants';
+const WATERING_HISTORY_KEY = '@🪴:watering_history';
 
 export const storageService = {
   async getPlants(): Promise<Plant[]> {
