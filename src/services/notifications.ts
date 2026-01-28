@@ -1,7 +1,11 @@
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
+import Constants from "expo-constants";
 import { Platform } from "react-native";
 import { Plant } from "../types/plant";
+
+// Check if we're running in Expo Go
+const isExpoGo = Constants.appOwnership === "expo";
 
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
@@ -46,6 +50,12 @@ export const notificationService = {
 
     async scheduleWateringNotification(plant: Plant): Promise<string | null> {
         try {
+            // Skip notifications in Expo Go - they don't work properly
+            if (isExpoGo) {
+                console.log("Skipping notification scheduling in Expo Go");
+                return null;
+            }
+
             // Cancel existing notification for this plant
             await this.cancelPlantNotifications(plant.id);
 
@@ -61,7 +71,16 @@ export const notificationService = {
             const notificationDate = new Date(nextWateringDate);
             notificationDate.setHours(9, 0, 0, 0);
 
-            const trigger = new Date(notificationDate);
+            // Calculate seconds until notification
+            const secondsUntilNotification = Math.floor(
+                (notificationDate.getTime() - now.getTime()) / 1000
+            );
+
+            const trigger: Notifications.NotificationTriggerInput = {
+                type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+                seconds: secondsUntilNotification,
+                channelId: Platform.OS === "android" ? "watering" : undefined,
+            };
 
             const notificationId =
                 await Notifications.scheduleNotificationAsync({
@@ -76,6 +95,7 @@ export const notificationService = {
                     trigger,
                 });
 
+            console.log(`Scheduled notification for ${plant.name} in ${secondsUntilNotification}s`);
             return notificationId;
         } catch (error) {
             console.error("Failed to schedule notification:", error);

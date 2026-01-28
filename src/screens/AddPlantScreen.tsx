@@ -13,7 +13,6 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { MotiView } from "moti";
 import { Plant } from "../types/plant";
 import { PlantIdentification } from "../types/plantIdentification";
 import { storageService } from "../services/storage";
@@ -381,30 +380,13 @@ export default function AddPlantScreen({ navigation }: any) {
                             // Show identifying state or retry
                             <View style={styles.actionButtons}>
                                 {identifying ? (
-                                    <MotiView
-                                        from={{ opacity: 0, scale: 0.9 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        transition={{
-                                            type: "spring",
-                                            damping: 15,
-                                        }}
-                                        style={styles.identifyingBox}
-                                    >
-                                        <MotiView
-                                            from={{ scale: 1 }}
-                                            animate={{ scale: 1.1 }}
-                                            transition={{
-                                                type: "timing",
-                                                duration: 1000,
-                                                loop: true,
-                                            }}
-                                            style={styles.identifyingSpinner}
-                                        >
+                                    <View style={styles.identifyingBox}>
+                                        <View style={styles.identifyingSpinner}>
                                             <ActivityIndicator
                                                 color={colors.primary}
                                                 size="large"
                                             />
-                                        </MotiView>
+                                        </View>
                                         <Text
                                             style={styles.identifyingTextLarge}
                                         >
@@ -418,16 +400,7 @@ export default function AddPlantScreen({ navigation }: any) {
                                                 )}
                                             </Text>
                                         )}
-                                        <MotiView
-                                            from={{ opacity: 0.3 }}
-                                            animate={{ opacity: 1 }}
-                                            transition={{
-                                                type: "timing",
-                                                duration: 800,
-                                                loop: true,
-                                            }}
-                                            style={styles.identifyingDots}
-                                        >
+                                        <View style={styles.identifyingDots}>
                                             <Text
                                                 style={
                                                     styles.identifyingDotsText
@@ -435,8 +408,8 @@ export default function AddPlantScreen({ navigation }: any) {
                                             >
                                                 •••
                                             </Text>
-                                        </MotiView>
-                                    </MotiView>
+                                        </View>
+                                    </View>
                                 ) : (
                                     <>
                                         <TouchableOpacity
@@ -480,28 +453,14 @@ export default function AddPlantScreen({ navigation }: any) {
                             </View>
                         ) : (
                             // Show form after identification
-                            <MotiView
-                                from={{ opacity: 0, translateY: 20 }}
-                                animate={{ opacity: 1, translateY: 0 }}
-                                transition={{ type: "spring", damping: 20 }}
-                                style={styles.form}
-                            >
+                            <View style={styles.form}>
                                 {renderAiSummary()}
-                                <MotiView
-                                    from={{ scale: 0 }}
-                                    animate={{ scale: 1 }}
-                                    transition={{
-                                        type: "spring",
-                                        damping: 12,
-                                        delay: 100,
-                                    }}
-                                    style={styles.identifiedHeader}
-                                >
+                                <View style={styles.identifiedHeader}>
                                     <Text style={styles.identifiedIcon}>✓</Text>
                                     <Text style={styles.identifiedTitle}>
                                         {commonName || "Plant Identified"}
                                     </Text>
-                                </MotiView>
+                                </View>
 
                                 <Text style={styles.label}>Name</Text>
                                 <TextInput
@@ -598,7 +557,7 @@ export default function AddPlantScreen({ navigation }: any) {
                                         </Text>
                                     </TouchableOpacity>
                                 </View>
-                            </MotiView>
+                            </View>
                         )}
                     </>
                 )}

@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import * as FileSystem from "expo-file-system";
+import { File } from "expo-file-system";
 import { Platform } from "react-native";
 import Constants from "expo-constants";
 import { prompt } from "./prompt";
@@ -39,10 +39,9 @@ export const geminiService = {
                     reader.readAsDataURL(blob);
                 });
             } else {
-                // Native: use FileSystem
-                base64 = await FileSystem.readAsStringAsync(imageUri, {
-                    encoding: FileSystem.EncodingType.Base64,
-                });
+                // Native: use modern expo-file-system API
+                const file = new File(imageUri);
+                base64 = await file.base64();
             }
 
             if (!GEMINI_API_KEY) {

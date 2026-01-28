@@ -6,8 +6,8 @@ import {
     Image,
     ScrollView,
     StatusBar,
+    TouchableOpacity,
 } from "react-native";
-import { MotiView } from "moti";
 import { Plant } from "../types/plant";
 import { storageService } from "../services/storage";
 import {
@@ -107,12 +107,7 @@ export default function PlantDetailScreen({ route, navigation }: any) {
                     />
                 )}
 
-                <MotiView
-                    from={{ opacity: 0, translateY: 20 }}
-                    animate={{ opacity: 1, translateY: 0 }}
-                    transition={{ type: "timing", duration: 400 }}
-                    style={styles.content}
-                >
+                <View style={styles.content}>
                     <Text style={styles.name}>{plant.name}</Text>
                     {plant.species && (
                         <Text style={styles.species}>{plant.species}</Text>
@@ -145,13 +140,25 @@ export default function PlantDetailScreen({ route, navigation }: any) {
                         </View>
 
                         <View style={styles.waterButtons}>
-                            <Text style={styles.waterButtonTextPrimary}>
-                                Water
-                            </Text>
+                            <TouchableOpacity
+                                style={styles.waterButtonPrimary}
+                                onPress={() => handleWater(false)}
+                                activeOpacity={0.7}
+                            >
+                                <Text style={styles.waterButtonTextPrimary}>
+                                    Water
+                                </Text>
+                            </TouchableOpacity>
 
-                            <Text style={styles.waterButtonTextSecondary}>
-                                Defer
-                            </Text>
+                            <TouchableOpacity
+                                style={styles.waterButtonSecondary}
+                                onPress={() => handleWater(true)}
+                                activeOpacity={0.7}
+                            >
+                                <Text style={styles.waterButtonTextSecondary}>
+                                    Defer
+                                </Text>
+                            </TouchableOpacity>
                         </View>
                     </View>
 
@@ -182,8 +189,14 @@ export default function PlantDetailScreen({ route, navigation }: any) {
                             <Text style={styles.notes}>{plant.notes}</Text>
                         </View>
                     )}
-                    <Text style={styles.deleteButtonText}>Delete Plant</Text>
-                </MotiView>
+                    <TouchableOpacity
+                        style={styles.deleteButton}
+                        onPress={handleDelete}
+                        activeOpacity={0.7}
+                    >
+                        <Text style={styles.deleteButtonText}>Delete Plant</Text>
+                    </TouchableOpacity>
+                </View>
             </ScrollView>
         </View>
     );
