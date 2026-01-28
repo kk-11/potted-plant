@@ -67,7 +67,7 @@ export const geminiService = {
             );
 
             const result = await model.generateContent([
-                { text: prompt },
+                { text: prompt(locationInfo) },
                 {
                     inlineData: {
                         mimeType: "image/jpeg",

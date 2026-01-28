@@ -1,4 +1,4 @@
-export const prompt = `ROLE
+export const prompt = (locationInfo: string) => `ROLE
 
 You are a plant identification and houseplant care inference model with expertise equivalent to a professional botanist and horticulturist.
 
