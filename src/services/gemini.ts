@@ -1,10 +1,13 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import * as FileSystem from "expo-file-system";
 import { Platform } from "react-native";
+import Constants from "expo-constants";
 import { prompt } from "./prompt";
 import { PlantIdentification } from "../types/plantIdentification";
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY; // Get from https://makersuite.google.com/app/apikey
+const GEMINI_API_KEY =
+    process.env.EXPO_PUBLIC_GEMINI_API_KEY ??
+    Constants.expoConfig?.extra?.EXPO_PUBLIC_GEMINI_API_KEY;
 
 export const geminiService = {
     async identifyPlant(
@@ -40,6 +43,10 @@ export const geminiService = {
                 base64 = await FileSystem.readAsStringAsync(imageUri, {
                     encoding: FileSystem.EncodingType.Base64,
                 });
+            }
+
+            if (!GEMINI_API_KEY) {
+                throw new Error("Missing EXPO_PUBLIC_GEMINI_API_KEY");
             }
 
             const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
@@ -85,34 +92,16 @@ export const geminiService = {
                     .replace(/^```(json)?/i, "")
                     .replace(/```$/, "")
                     .trim();
-                const parsed = JSON.parse(cleaned);
+                const parsed = JSON.parse(cleaned) as PlantIdentification;
 
                 console.log("✅ Gemini parsed result:", {
-                    commonName: parsed?.commonName,
-                    scientificName: parsed?.scientificName,
-                    confidence: parsed?.confidence,
-                    isPlant: parsed?.isPlant,
+                    commonName: parsed?.identification?.commonName,
+                    scientificName: parsed?.identification?.scientificName,
+                    confidence: parsed?.identification?.confidence,
+                    isPlant: parsed?.identification?.isPlant,
                 });
 
-                const finalResult = {
-                    isPlant: !!parsed?.isPlant,
-                    confidence: Number(parsed?.confidence ?? 0) || 0,
-                    scientificName: parsed?.scientificName || null,
-                    commonName: parsed?.commonName || null,
-                    wateringFrequencyDays: parsed?.wateringFrequencyDays
-                        ? Number(parsed.wateringFrequencyDays)
-                        : null,
-                    sunlightNeeds: parsed?.sunlightNeeds || null,
-                    careLevel: parsed?.careLevel || null,
-                    description: parsed?.description || null,
-                    advice: parsed?.advice || null,
-                };
-
-                console.log(
-                    "📊 Final confidence score:",
-                    finalResult.confidence,
-                );
-                return finalResult;
+                return parsed;
             } catch (e) {
                 console.error("❌ Failed to parse Gemini response:", e);
                 console.error("Raw text was:", text);
@@ -127,50 +116,162 @@ export const geminiService = {
 
     // Mock identification for demo/testing
     mockIdentification(): PlantIdentification {
-        const plants = [
+        const plants: PlantIdentification[] = [
             {
-                isPlant: true,
-                confidence: 0.95,
-                scientificName: "Monstera deliciosa",
-                commonName: "Swiss Cheese Plant",
-                wateringFrequencyDays: 7,
-                sunlightNeeds: "bright indirect",
-                careLevel: "easy",
-                description:
-                    "Allow soil to dry between waterings. Thrives in bright indirect light.",
+                inputAssessment: {
+                    imageQuality: {
+                        overall: "good",
+                        confidence: 0.8,
+                        issues: [],
+                    },
+                    improvementSuggestions: [],
+                    usableFor: {
+                        identification: "high",
+                        careInference: "high",
+                    },
+                },
+                identification: {
+                    isPlant: true,
+                    confidence: 0.95,
+                    scientificName: "Monstera deliciosa",
+                    commonName: "Swiss Cheese Plant",
+                    confidenceByField: {
+                        scientificName: 0.9,
+                        commonName: 0.9,
+                        careProfile: 0.85,
+                    },
+                },
+                careProfile: {
+                    water: {
+                        tolerance: {
+                            dry: "medium",
+                            wet: "low",
+                        },
+                        rootRotRisk: "medium",
+                        preferredSoilMoisture: "slightly_dry_between_watering",
+                        safeDryPeriodDays: {
+                            min: 5,
+                            max: 10,
+                        },
+                    },
+                    light: {
+                        preferred: "bright_indirect",
+                        tolerates: ["medium"],
+                    },
+                    growthCycle: {
+                        activeMonths: [3, 4, 5, 6, 7, 8, 9, 10],
+                        dormantMonths: [11, 12, 1, 2],
+                    },
+                    hardiness: {
+                        minTempC: 12,
+                        maxTempC: 30,
+                    },
+                },
+                environmentalSensitivity: {
+                    seasonalityImpact: "medium",
+                    humidityImpact: "medium",
+                    potSizeImpact: "medium",
+                    soilTypeImpact: "high",
+                },
+                wateringLogicHints: {
+                    defaultBias: "delay",
+                    recommendedCheck: "soil_depth_finger_test",
+                    warningTriggers: ["yellowing lower leaves", "mushy stems"],
+                },
+                modelVerdicts: {
+                    canIdentifyPlant: true,
+                    canInferWatering: true,
+                    requiresBetterInput: false,
+                },
+                derivedSummary: {
+                    wateringFrequencyDays: 7,
+                    sunlightNeeds: "Bright indirect light",
+                    careLevel: "easy",
+                },
+                notes: {
+                    description:
+                        "Allow soil to dry slightly between waterings. Thrives in bright indirect light.",
+                    advice: null,
+                    uncertainty: null,
+                },
             },
             {
-                isPlant: true,
-                confidence: 0.92,
-                scientificName: "Epipremnum aureum",
-                commonName: "Pothos",
-                wateringFrequencyDays: 5,
-                sunlightNeeds: "bright indirect",
-                careLevel: "easy",
-                description:
-                    "Very hardy trailing vine. Water when top soil is dry. Tolerates low light.",
-            },
-            {
-                isPlant: true,
-                confidence: 0.91,
-                scientificName: "Sansevieria trifasciata",
-                commonName: "Snake Plant",
-                wateringFrequencyDays: 14,
-                sunlightNeeds: "partial shade",
-                careLevel: "easy",
-                description:
-                    "Extremely low maintenance. Water sparingly, prefers to dry out completely.",
-            },
-            {
-                isPlant: true,
-                confidence: 0.88,
-                scientificName: "Ficus lyrata",
-                commonName: "Fiddle Leaf Fig",
-                wateringFrequencyDays: 7,
-                sunlightNeeds: "bright indirect",
-                careLevel: "moderate",
-                description:
-                    "Needs consistent watering and bright light. Sensitive to changes.",
+                inputAssessment: {
+                    imageQuality: {
+                        overall: "good",
+                        confidence: 0.75,
+                        issues: [],
+                    },
+                    improvementSuggestions: [],
+                    usableFor: {
+                        identification: "high",
+                        careInference: "high",
+                    },
+                },
+                identification: {
+                    isPlant: true,
+                    confidence: 0.92,
+                    scientificName: "Epipremnum aureum",
+                    commonName: "Pothos",
+                    confidenceByField: {
+                        scientificName: 0.85,
+                        commonName: 0.9,
+                        careProfile: 0.8,
+                    },
+                },
+                careProfile: {
+                    water: {
+                        tolerance: {
+                            dry: "medium",
+                            wet: "low",
+                        },
+                        rootRotRisk: "medium",
+                        preferredSoilMoisture: "slightly_dry_between_watering",
+                        safeDryPeriodDays: {
+                            min: 4,
+                            max: 9,
+                        },
+                    },
+                    light: {
+                        preferred: "bright_indirect",
+                        tolerates: ["medium", "low"],
+                    },
+                    growthCycle: {
+                        activeMonths: [3, 4, 5, 6, 7, 8, 9, 10],
+                        dormantMonths: [11, 12, 1, 2],
+                    },
+                    hardiness: {
+                        minTempC: 12,
+                        maxTempC: 30,
+                    },
+                },
+                environmentalSensitivity: {
+                    seasonalityImpact: "medium",
+                    humidityImpact: "medium",
+                    potSizeImpact: "medium",
+                    soilTypeImpact: "medium",
+                },
+                wateringLogicHints: {
+                    defaultBias: "delay",
+                    recommendedCheck: "soil_depth_finger_test",
+                    warningTriggers: ["yellowing lower leaves", "mushy stems"],
+                },
+                modelVerdicts: {
+                    canIdentifyPlant: true,
+                    canInferWatering: true,
+                    requiresBetterInput: false,
+                },
+                derivedSummary: {
+                    wateringFrequencyDays: 7,
+                    sunlightNeeds: "Bright indirect light",
+                    careLevel: "easy",
+                },
+                notes: {
+                    description:
+                        "Hardy trailing vine. Water when top soil is dry. Tolerates lower light.",
+                    advice: null,
+                    uncertainty: null,
+                },
             },
         ];
 
