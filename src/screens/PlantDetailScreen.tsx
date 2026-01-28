@@ -149,16 +149,6 @@ export default function PlantDetailScreen({ route, navigation }: any) {
                                     Water
                                 </Text>
                             </TouchableOpacity>
-
-                            <TouchableOpacity
-                                style={styles.waterButtonSecondary}
-                                onPress={() => handleWater(true)}
-                                activeOpacity={0.7}
-                            >
-                                <Text style={styles.waterButtonTextSecondary}>
-                                    Defer
-                                </Text>
-                            </TouchableOpacity>
                         </View>
                     </View>
 
@@ -194,7 +184,9 @@ export default function PlantDetailScreen({ route, navigation }: any) {
                         onPress={handleDelete}
                         activeOpacity={0.7}
                     >
-                        <Text style={styles.deleteButtonText}>Delete Plant</Text>
+                        <Text style={styles.deleteButtonText}>
+                            Delete Plant
+                        </Text>
                     </TouchableOpacity>
                 </View>
             </ScrollView>
