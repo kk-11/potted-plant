@@ -1,51 +1,56 @@
 {
-    "expo": {
-        "name": "🪴",
-        "slug": "potted-plant",
-        "version": "1.0.0",
-        "orientation": "portrait",
-        "icon": "./assets/icon.png",
-        "userInterfaceStyle": "light",
-        "newArchEnabled": true,
-        "splash": {
-            "image": "./assets/splash-icon.png",
-            "resizeMode": "contain",
-            "backgroundColor": "#0a0a0a"
-        },
-        "ios": {
-            "supportsTablet": true,
-            "bundleIdentifier": "com.yourname.pottedplant",
-            "buildNumber": "1"
-        },
-        "android": {
-            "adaptiveIcon": {
-                "foregroundImage": "./assets/adaptive-icon.png",
-                "backgroundColor": "#009688"
-            },
-            "package": "com.yourname.pottedplant",
-            "versionCode": 1,
-            "permissions": [
-                "CAMERA",
-                "READ_MEDIA_IMAGES",
-                "ACCESS_COARSE_LOCATION",
-                "ACCESS_FINE_LOCATION",
-                "RECEIVE_BOOT_COMPLETED",
-                "SCHEDULE_EXACT_ALARM"
-            ],
-            "edgeToEdgeEnabled": true,
-            "predictiveBackGestureEnabled": false
-        },
-        "web": {
-            "favicon": "./assets/favicon.png"
-        },
-        "plugins": [
-            [
-                "expo-notifications",
-                {
-                    "icon": "./assets/notification-icon.png",
-                    "color": "#009688"
-                }
-            ]
-        ]
+  "expo": {
+    "name": "🪴",
+    "slug": "potted-plant",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0a0a0a"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.kk11.pottedplant",
+      "buildNumber": "1"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#009688"
+      },
+      "package": "com.kk11.pottedplant",
+      "versionCode": 1,
+      "permissions": [
+        "CAMERA",
+        "READ_MEDIA_IMAGES",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "RECEIVE_BOOT_COMPLETED",
+        "SCHEDULE_EXACT_ALARM"
+      ],
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#009688"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "3affe1b2-fccd-42cb-80dc-9fb72ac83e4c"
+      }
     }
+  }
 }
