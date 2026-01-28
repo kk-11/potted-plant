@@ -42,7 +42,7 @@ export default function HomeScreen({ navigation }: any) {
 
   const renderPlant = ({ item, index }: { item: Plant; index: number }) => {
     const overdue = isPastDue(item.nextWatering);
-
+    console.log(item);
     return (
       <MotiView
         from={{ opacity: 0, translateY: 20 }}

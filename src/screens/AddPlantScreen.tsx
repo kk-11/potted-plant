@@ -7,7 +7,6 @@ import {
     TouchableOpacity,
     Image,
     ScrollView,
-    Alert,
     ActivityIndicator,
     StatusBar,
     Platform,
@@ -22,6 +21,7 @@ import { addDays } from "../utils/dateUtils";
 import { colors } from "../theme/colors";
 import { geminiService } from "../services/gemini";
 import { locationService, UserLocation } from "../services/location";
+import { showAlert } from "../utils/alert";
 
 export default function AddPlantScreen({ navigation }: any) {
     const [imageUri, setImageUri] = useState<string | undefined>();
@@ -48,7 +48,7 @@ export default function AddPlantScreen({ navigation }: any) {
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
 
         if (status !== "granted") {
-            Alert.alert("Permission needed", "Please grant camera permissions");
+            showAlert("Permission needed", "Please grant camera permissions");
             return;
         }
 
@@ -74,7 +74,7 @@ export default function AddPlantScreen({ navigation }: any) {
             await ImagePicker.requestMediaLibraryPermissionsAsync();
 
         if (status !== "granted") {
-            Alert.alert(
+            showAlert(
                 "Permission needed",
                 "Please grant camera roll permissions",
             );
@@ -129,7 +129,7 @@ export default function AddPlantScreen({ navigation }: any) {
             setDebugInfo(JSON.stringify(result, null, 2));
 
             if (!result.identification?.isPlant) {
-                Alert.alert(
+                showAlert(
                     "Not a plant",
                     "Could not identify a plant. Please take a photo of a live plant.",
                     [{ text: "Retake", onPress: takePhoto }],
@@ -149,7 +149,7 @@ export default function AddPlantScreen({ navigation }: any) {
                     lowConfidenceMessage += `\n\nFor better results:\n• Move closer to the plant\n• Better lighting\n• Focus on leaves clearly\n• Keep image sharp`;
                 }
 
-                Alert.alert("Low confidence", lowConfidenceMessage, [
+                showAlert("Low confidence", lowConfidenceMessage, [
                     { text: "Retake Photo", onPress: takePhoto },
                     {
                         text: "Continue Anyway",
@@ -165,7 +165,7 @@ export default function AddPlantScreen({ navigation }: any) {
         } catch (error) {
             console.error("Identification failed:", error);
             setDebugInfo(`Error: ${error}`);
-            Alert.alert("Error", "Failed to identify plant. Please try again.");
+            showAlert("Error", "Failed to identify plant. Please try again.");
         } finally {
             setIdentifying(false);
         }
@@ -288,7 +288,7 @@ export default function AddPlantScreen({ navigation }: any) {
 
     const handleSave = async () => {
         if (!name.trim()) {
-            Alert.alert("Missing name", "Please enter a name for your plant");
+            showAlert("Missing name", "Please enter a name for your plant");
             return;
         }
 
@@ -312,7 +312,7 @@ export default function AddPlantScreen({ navigation }: any) {
             await storageService.addPlant(newPlant);
             navigation.goBack();
         } catch (error) {
-            Alert.alert("Error", "Failed to save plant");
+            showAlert("Error", "Failed to save plant");
         }
     };
 
