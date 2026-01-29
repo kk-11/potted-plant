@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import {
     View,
     Text,
@@ -8,6 +8,7 @@ import {
     StatusBar,
     TouchableOpacity,
 } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { Plant } from "../types/plant";
 import { storageService } from "../services/storage";
 import {
@@ -19,13 +20,22 @@ import {
 import { colors } from "../theme/colors";
 import { showAlert } from "../utils/alert";
 
+type UndoAction = {
+    type: "water";
+    previousPlant: Plant;
+    timestamp: Date;
+};
+
 export default function PlantDetailScreen({ route, navigation }: any) {
     const { plantId } = route.params;
     const [plant, setPlant] = useState<Plant | null>(null);
+    const [undoAction, setUndoAction] = useState<UndoAction | null>(null);
 
-    useEffect(() => {
-        loadPlant();
-    }, [plantId]);
+    useFocusEffect(
+        useCallback(() => {
+            loadPlant();
+        }, [plantId]),
+    );
 
     const loadPlant = async () => {
         const plants = await storageService.getPlants();
@@ -39,6 +49,9 @@ export default function PlantDetailScreen({ route, navigation }: any) {
 
     const handleWater = async (soilWasWet: boolean) => {
         if (!plant) return;
+
+        // Store the previous state for undo
+        const previousPlant = { ...plant };
 
         const now = new Date();
         const daysToAdd = soilWasWet
@@ -59,7 +72,60 @@ export default function PlantDetailScreen({ route, navigation }: any) {
             deferredDays: soilWasWet ? daysToAdd : undefined,
         });
 
-        setPlant(updatedPlant);
+        // Set undo action
+        setUndoAction({
+            type: "water",
+            previousPlant,
+            timestamp: now,
+        });
+
+        await loadPlant();
+    };
+
+    const handleUndo = async () => {
+        if (!undoAction || undoAction.type !== "water") return;
+
+        // Restore previous plant state
+        await storageService.updatePlant(undoAction.previousPlant);
+
+        // Remove the last watering event
+        const history = await storageService.getWateringHistory();
+        const filteredHistory = history.filter(
+            (event) => event.plantId !== plantId || event.date !== undoAction.timestamp.toISOString()
+        );
+        await storageService.setWateringHistory(filteredHistory);
+
+        // Clear undo action
+        setUndoAction(null);
+
+        await loadPlant();
+    };
+
+    // Filter out advice from notes (advice is photo-dependent)
+    const getFilteredNotes = (notes?: string) => {
+        if (!notes) return undefined;
+
+        // Remove "Advice" section if present
+        const lines = notes.split("\n");
+        const filteredLines: string[] = [];
+        let skipAdvice = false;
+
+        for (const line of lines) {
+            if (line.trim().toLowerCase().startsWith("advice")) {
+                skipAdvice = true;
+                continue;
+            }
+            // Stop skipping after an empty line or new section
+            if (skipAdvice && line.trim() === "") {
+                skipAdvice = false;
+                continue;
+            }
+            if (!skipAdvice) {
+                filteredLines.push(line);
+            }
+        }
+
+        return filteredLines.join("\n").trim() || undefined;
     };
 
     const handleDelete = () => {
@@ -95,11 +161,12 @@ export default function PlantDetailScreen({ route, navigation }: any) {
     }
 
     const overdue = isPastDue(plant.nextWatering);
+    const filteredNotes = getFilteredNotes(plant.notes);
 
     return (
         <View style={styles.container}>
             <StatusBar barStyle="light-content" />
-            <ScrollView>
+            <ScrollView contentContainerStyle={styles.scrollContent}>
                 {plant.imageUri && (
                     <Image
                         source={{ uri: plant.imageUri }}
@@ -113,30 +180,36 @@ export default function PlantDetailScreen({ route, navigation }: any) {
                         <Text style={styles.species}>{plant.species}</Text>
                     )}
 
+                    {/* Undo button - only shows after action */}
+                    {undoAction && (
+                        <TouchableOpacity
+                            style={styles.undoButton}
+                            onPress={handleUndo}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={styles.undoButtonText}>↶ Undo Watering</Text>
+                        </TouchableOpacity>
+                    )}
+
+                    {/* Watering Card */}
                     <View style={styles.wateringCard}>
-                        <View style={styles.wateringHeader}>
-                            <View>
-                                <Text style={styles.nextLabel}>
-                                    Next watering
-                                </Text>
+                        <Text style={styles.sectionLabel}>WATERING</Text>
+
+                        <View style={styles.wateringInfo}>
+                            <View style={styles.wateringRow}>
+                                <Text style={styles.wateringLabel}>Next watering</Text>
                                 <Text
                                     style={[
-                                        styles.nextDate,
+                                        styles.wateringValue,
                                         overdue && styles.overdueText,
                                     ]}
                                 >
                                     {formatRelativeDate(plant.nextWatering)}
                                 </Text>
-                                <Text style={styles.dateSmall}>
-                                    {formatDate(plant.nextWatering)}
-                                </Text>
                             </View>
-                            <View
-                                style={[
-                                    styles.statusIndicator,
-                                    overdue && styles.statusOverdue,
-                                ]}
-                            />
+                            <Text style={styles.wateringSubtext}>
+                                {formatDate(plant.nextWatering)}
+                            </Text>
                         </View>
 
                         <View style={styles.waterButtons}>
@@ -146,39 +219,57 @@ export default function PlantDetailScreen({ route, navigation }: any) {
                                 activeOpacity={0.7}
                             >
                                 <Text style={styles.waterButtonTextPrimary}>
-                                    Water
+                                    💧 Water Now
+                                </Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={styles.waterButtonSecondary}
+                                onPress={() => handleWater(true)}
+                                activeOpacity={0.7}
+                            >
+                                <Text style={styles.waterButtonTextSecondary}>
+                                    Defer (Soil Wet)
                                 </Text>
                             </TouchableOpacity>
                         </View>
                     </View>
 
-                    <View style={styles.infoCard}>
-                        <View style={styles.infoRow}>
-                            <Text style={styles.infoLabel}>Frequency</Text>
-                            <Text style={styles.infoValue}>
-                                Every {plant.wateringFrequencyDays}d
+                    {/* Plant Details */}
+                    <View style={styles.detailsCard}>
+                        <Text style={styles.sectionLabel}>DETAILS</Text>
+
+                        <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>Frequency</Text>
+                            <Text style={styles.detailValue}>
+                                Every {plant.wateringFrequencyDays} days
                             </Text>
                         </View>
-                        <View style={styles.infoRow}>
-                            <Text style={styles.infoLabel}>Last watered</Text>
-                            <Text style={styles.infoValue}>
+
+                        <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>Last watered</Text>
+                            <Text style={styles.detailValue}>
                                 {formatDate(plant.lastWatered)}
                             </Text>
                         </View>
-                        <View style={styles.infoRow}>
-                            <Text style={styles.infoLabel}>Added</Text>
-                            <Text style={styles.infoValue}>
+
+                        <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>Added</Text>
+                            <Text style={styles.detailValue}>
                                 {formatDate(plant.addedDate)}
                             </Text>
                         </View>
                     </View>
 
-                    {plant.notes && (
-                        <View style={styles.infoCard}>
-                            <Text style={styles.notesLabel}>Notes</Text>
-                            <Text style={styles.notes}>{plant.notes}</Text>
+                    {/* Notes (excluding advice) */}
+                    {filteredNotes && (
+                        <View style={styles.notesCard}>
+                            <Text style={styles.sectionLabel}>CARE NOTES</Text>
+                            <Text style={styles.notes}>{filteredNotes}</Text>
                         </View>
                     )}
+
+                    {/* Delete Button */}
                     <TouchableOpacity
                         style={styles.deleteButton}
                         onPress={handleDelete}
@@ -199,12 +290,16 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: colors.background,
     },
+    scrollContent: {
+        paddingBottom: 40,
+    },
     headerImage: {
         width: "100%",
         height: 300,
     },
     content: {
         padding: 20,
+        gap: 16,
     },
     name: {
         fontSize: 28,
@@ -216,49 +311,62 @@ const styles = StyleSheet.create({
     species: {
         fontSize: 16,
         color: colors.textSecondary,
-        marginBottom: 24,
+        marginBottom: 8,
+    },
+    undoButton: {
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.primary,
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderRadius: 12,
+        alignItems: "center",
+        marginBottom: 8,
+    },
+    undoButtonText: {
+        color: colors.primary,
+        fontSize: 15,
+        fontWeight: "600",
+    },
+    sectionLabel: {
+        fontSize: 13,
+        fontWeight: "600",
+        color: colors.textSecondary,
+        textTransform: "uppercase",
+        letterSpacing: 1,
+        marginBottom: 16,
     },
     wateringCard: {
         backgroundColor: colors.surface,
         borderRadius: 16,
         padding: 20,
-        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: colors.border,
     },
-    wateringHeader: {
+    wateringInfo: {
+        marginBottom: 20,
+    },
+    wateringRow: {
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        marginBottom: 20,
+        marginBottom: 4,
     },
-    nextLabel: {
-        fontSize: 13,
+    wateringLabel: {
+        fontSize: 15,
         color: colors.textSecondary,
-        textTransform: "uppercase",
-        letterSpacing: 1,
-        marginBottom: 8,
-        fontWeight: "600",
     },
-    nextDate: {
-        fontSize: 24,
+    wateringValue: {
+        fontSize: 18,
         fontWeight: "700",
         color: colors.primary,
-        marginBottom: 4,
     },
     overdueText: {
         color: colors.danger,
     },
-    dateSmall: {
-        fontSize: 14,
+    wateringSubtext: {
+        fontSize: 13,
         color: colors.textTertiary,
-    },
-    statusIndicator: {
-        width: 12,
-        height: 12,
-        borderRadius: 6,
-        backgroundColor: colors.primary,
-    },
-    statusOverdue: {
-        backgroundColor: colors.danger,
     },
     waterButtons: {
         flexDirection: "row",
@@ -273,7 +381,9 @@ const styles = StyleSheet.create({
     },
     waterButtonSecondary: {
         flex: 1,
-        backgroundColor: colors.surfaceLight,
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.border,
         paddingVertical: 16,
         borderRadius: 12,
         alignItems: "center",
@@ -285,38 +395,38 @@ const styles = StyleSheet.create({
     },
     waterButtonTextSecondary: {
         color: colors.text,
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: "600",
     },
-    infoCard: {
+    detailsCard: {
         backgroundColor: colors.surface,
         borderRadius: 16,
         padding: 20,
-        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: colors.border,
     },
-    infoRow: {
+    detailRow: {
         flexDirection: "row",
         justifyContent: "space-between",
         paddingVertical: 12,
         borderBottomWidth: 1,
         borderBottomColor: colors.border,
     },
-    infoLabel: {
+    detailLabel: {
         fontSize: 15,
         color: colors.textSecondary,
     },
-    infoValue: {
+    detailValue: {
         fontSize: 15,
         color: colors.text,
         fontWeight: "500",
     },
-    notesLabel: {
-        fontSize: 13,
-        color: colors.textSecondary,
-        textTransform: "uppercase",
-        letterSpacing: 1,
-        marginBottom: 12,
-        fontWeight: "600",
+    notesCard: {
+        backgroundColor: colors.surface,
+        borderRadius: 16,
+        padding: 20,
+        borderWidth: 1,
+        borderColor: colors.border,
     },
     notes: {
         fontSize: 15,
@@ -331,7 +441,6 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         alignItems: "center",
         marginTop: 8,
-        marginBottom: 32,
     },
     deleteButtonText: {
         color: colors.danger,

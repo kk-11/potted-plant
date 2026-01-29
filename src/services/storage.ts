@@ -82,4 +82,13 @@ export const storageService = {
     history.push(event);
     await AsyncStorage.setItem(WATERING_HISTORY_KEY, JSON.stringify(history));
   },
+
+  async setWateringHistory(history: WateringEvent[]): Promise<void> {
+    try {
+      await AsyncStorage.setItem(WATERING_HISTORY_KEY, JSON.stringify(history));
+    } catch (error) {
+      console.error('Error setting watering history:', error);
+      throw error;
+    }
+  },
 };
