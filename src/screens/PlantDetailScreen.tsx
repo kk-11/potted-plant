@@ -7,7 +7,9 @@ import {
     ScrollView,
     StatusBar,
     TouchableOpacity,
+    Platform,
 } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useFocusEffect } from "@react-navigation/native";
 import { Plant } from "../types/plant";
 import { storageService } from "../services/storage";
@@ -30,6 +32,7 @@ export default function PlantDetailScreen({ route, navigation }: any) {
     const { plantId } = route.params;
     const [plant, setPlant] = useState<Plant | null>(null);
     const [undoAction, setUndoAction] = useState<UndoAction | null>(null);
+    const [showDatePicker, setShowDatePicker] = useState(false);
 
     useFocusEffect(
         useCallback(() => {
@@ -101,31 +104,65 @@ export default function PlantDetailScreen({ route, navigation }: any) {
         await loadPlant();
     };
 
-    // Filter out advice from notes (advice is photo-dependent)
-    const getFilteredNotes = (notes?: string) => {
-        if (!notes) return undefined;
+    const handleUpdateLastWatered = async (newDate: Date) => {
+        if (!plant) return;
 
-        // Remove "Advice" section if present
+        const updatedPlant: Plant = {
+            ...plant,
+            lastWatered: newDate.toISOString(),
+            nextWatering: addDays(newDate, plant.wateringFrequencyDays).toISOString(),
+        };
+
+        await storageService.updatePlant(updatedPlant);
+        await loadPlant();
+    };
+
+    // Parse notes into sections for better display
+    const parseNotes = (notes?: string) => {
+        if (!notes) return null;
+
+        const sections: Array<{ title: string; content: string[] }> = [];
         const lines = notes.split("\n");
-        const filteredLines: string[] = [];
-        let skipAdvice = false;
+        let currentSection: { title: string; content: string[] } | null = null;
 
         for (const line of lines) {
-            if (line.trim().toLowerCase().startsWith("advice")) {
-                skipAdvice = true;
+            const trimmed = line.trim();
+
+            // Skip advice sections (photo-dependent)
+            if (trimmed.toLowerCase().startsWith("advice")) {
+                if (currentSection) {
+                    sections.push(currentSection);
+                }
+                currentSection = null;
                 continue;
             }
-            // Stop skipping after an empty line or new section
-            if (skipAdvice && line.trim() === "") {
-                skipAdvice = false;
-                continue;
-            }
-            if (!skipAdvice) {
-                filteredLines.push(line);
+
+            // Check if line is a section title (ends with colon or all caps)
+            if (trimmed.endsWith(":") || (trimmed === trimmed.toUpperCase() && trimmed.length > 0 && trimmed.length < 30)) {
+                if (currentSection) {
+                    sections.push(currentSection);
+                }
+                currentSection = {
+                    title: trimmed.replace(":", ""),
+                    content: [],
+                };
+            } else if (trimmed && currentSection) {
+                currentSection.content.push(trimmed);
+            } else if (trimmed && !currentSection) {
+                // Content without a section header
+                if (sections.length === 0 || sections[sections.length - 1].title !== "Notes") {
+                    sections.push({ title: "Notes", content: [trimmed] });
+                } else {
+                    sections[sections.length - 1].content.push(trimmed);
+                }
             }
         }
 
-        return filteredLines.join("\n").trim() || undefined;
+        if (currentSection && currentSection.content.length > 0) {
+            sections.push(currentSection);
+        }
+
+        return sections.length > 0 ? sections : null;
     };
 
     const handleDelete = () => {
@@ -161,7 +198,7 @@ export default function PlantDetailScreen({ route, navigation }: any) {
     }
 
     const overdue = isPastDue(plant.nextWatering);
-    const filteredNotes = getFilteredNotes(plant.notes);
+    const noteSections = parseNotes(plant.notes);
 
     return (
         <View style={styles.container}>
@@ -248,10 +285,33 @@ export default function PlantDetailScreen({ route, navigation }: any) {
 
                         <View style={styles.detailRow}>
                             <Text style={styles.detailLabel}>Last watered</Text>
-                            <Text style={styles.detailValue}>
-                                {formatDate(plant.lastWatered)}
-                            </Text>
+                            <TouchableOpacity
+                                onPress={() => setShowDatePicker(true)}
+                                activeOpacity={0.7}
+                            >
+                                <Text style={styles.detailValue}>
+                                    {formatDate(plant.lastWatered)} ›
+                                </Text>
+                            </TouchableOpacity>
                         </View>
+
+                        {showDatePicker && (
+                            <DateTimePicker
+                                value={new Date(plant.lastWatered)}
+                                mode="date"
+                                display={Platform.OS === "ios" ? "spinner" : "default"}
+                                onChange={(event, selectedDate) => {
+                                    setShowDatePicker(Platform.OS === "ios");
+                                    if (selectedDate) {
+                                        handleUpdateLastWatered(selectedDate);
+                                    }
+                                }}
+                                maximumDate={new Date()}
+                                minimumDate={
+                                    new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+                                }
+                            />
+                        )}
 
                         <View style={styles.detailRow}>
                             <Text style={styles.detailLabel}>Added</Text>
@@ -261,11 +321,22 @@ export default function PlantDetailScreen({ route, navigation }: any) {
                         </View>
                     </View>
 
-                    {/* Notes (excluding advice) */}
-                    {filteredNotes && (
+                    {/* Care Notes with sections */}
+                    {noteSections && (
                         <View style={styles.notesCard}>
                             <Text style={styles.sectionLabel}>CARE NOTES</Text>
-                            <Text style={styles.notes}>{filteredNotes}</Text>
+                            {noteSections.map((section, index) => (
+                                <View key={index} style={styles.aiSection}>
+                                    <Text style={styles.aiSectionTitle}>
+                                        {section.title}
+                                    </Text>
+                                    {section.content.map((text, i) => (
+                                        <Text key={i} style={styles.aiText}>
+                                            {text}
+                                        </Text>
+                                    ))}
+                                </View>
+                            ))}
                         </View>
                     )}
 
@@ -427,11 +498,23 @@ const styles = StyleSheet.create({
         padding: 20,
         borderWidth: 1,
         borderColor: colors.border,
+        gap: 12,
     },
-    notes: {
-        fontSize: 15,
+    aiSection: {
+        gap: 6,
+        paddingTop: 6,
+    },
+    aiSectionTitle: {
+        color: colors.primary,
+        fontSize: 13,
+        fontWeight: "700",
+        textTransform: "uppercase",
+        letterSpacing: 1,
+    },
+    aiText: {
         color: colors.text,
-        lineHeight: 22,
+        fontSize: 14,
+        lineHeight: 20,
     },
     deleteButton: {
         backgroundColor: colors.surface,
