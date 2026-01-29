@@ -319,26 +319,21 @@ export default function PlantDetailScreen({ route, navigation }: any) {
                                 {formatDate(plant.addedDate)}
                             </Text>
                         </View>
-                    </View>
 
-                    {/* Care Notes with sections */}
-                    {noteSections && (
-                        <View style={styles.notesCard}>
-                            <Text style={styles.sectionLabel}>CARE NOTES</Text>
-                            {noteSections.map((section, index) => (
-                                <View key={index} style={styles.aiSection}>
-                                    <Text style={styles.aiSectionTitle}>
-                                        {section.title}
+                        {/* Care Notes with sections */}
+                        {noteSections && noteSections.map((section, index) => (
+                            <View key={index} style={styles.aiSection}>
+                                <Text style={styles.aiSectionTitle}>
+                                    {section.title}
+                                </Text>
+                                {section.content.map((text, i) => (
+                                    <Text key={i} style={styles.aiText}>
+                                        {text}
                                     </Text>
-                                    {section.content.map((text, i) => (
-                                        <Text key={i} style={styles.aiText}>
-                                            {text}
-                                        </Text>
-                                    ))}
-                                </View>
-                            ))}
-                        </View>
-                    )}
+                                ))}
+                            </View>
+                        ))}
+                    </View>
 
                     {/* Delete Button */}
                     <TouchableOpacity
@@ -475,6 +470,7 @@ const styles = StyleSheet.create({
         padding: 20,
         borderWidth: 1,
         borderColor: colors.border,
+        gap: 12,
     },
     detailRow: {
         flexDirection: "row",
@@ -491,14 +487,6 @@ const styles = StyleSheet.create({
         fontSize: 15,
         color: colors.text,
         fontWeight: "500",
-    },
-    notesCard: {
-        backgroundColor: colors.surface,
-        borderRadius: 16,
-        padding: 20,
-        borderWidth: 1,
-        borderColor: colors.border,
-        gap: 12,
     },
     aiSection: {
         gap: 6,
